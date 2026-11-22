@@ -1,23 +1,24 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import sys
-import urllib2
+import urllib.request
 import json
-from PyQt4 import QtGui
-from PyQt4.QtCore import QTimer
+from PyQt6 import QtGui, QtWidgets
+from PyQt6.QtCore import QTimer
 
-class SystemTrayIcon(QtGui.QSystemTrayIcon):
+class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
 
     def __init__(self, parent=None):
-        QtGui.QSystemTrayIcon.__init__(self, parent)
-        menu = QtGui.QMenu(parent)
-        self.quitAction = QtGui.QAction("&Quit", self, triggered=QtGui.qApp.quit)
-        exitAction = menu.addAction(self.quitAction)
+        super().__init__(parent)
+        menu = QtWidgets.QMenu(parent)
+        self.quitAction = QtGui.QAction("&Quit", self)
+        self.quitAction.triggered.connect(QtWidgets.QApplication.quit)
+        menu.addAction(self.quitAction)
         self.setContextMenu(menu)
 
         self.icons = {}
         for i in range(0, 3600, 225):
-            self.icons[str(i / 10.0)] = QtGui.QIcon("pics/" + str(i / 10.0) + ".png")
+            self.icons[str(i / 10)] = QtGui.QIcon("pics/" + str(i / 10) + ".png")
 
         self.checkWind()
         self.timer = QTimer()
@@ -25,19 +26,19 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
         self.timer.start(3 * 60 * 1000)
 
     def checkWind(self):
-        j = urllib2.urlopen('http://api.pioupiou.fr/v1/live/503')
+        j = urllib.request.urlopen('http://api.pioupiou.fr/v1/live/503')
         j_obj = json.load(j)
-        self.setIcon(self.icons[str(int(j_obj['data']['measurements']['wind_heading'] * 100 + 1125) /2250 * 22.5)])
+        self.setIcon(self.icons[str(int(j_obj['data']['measurements']['wind_heading'] * 100 + 1125) // 2250 % 16 * 22.5)])
         self.setToolTip('Wind direction %s, speed %d km/h, max %d km/h, min %d km/h. Taken %s' % (j_obj['data']['measurements']['wind_heading'], round(j_obj['data']['measurements']['wind_speed_avg']), round(j_obj['data']['measurements']['wind_speed_max']), round(j_obj['data']['measurements']['wind_speed_min']), j_obj['data']['measurements']['date']))
 
 def main():
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
-    w = QtGui.QWidget()
+    w = QtWidgets.QWidget()
     trayIcon = SystemTrayIcon(w)
 
     trayIcon.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 if __name__ == '__main__':
     main()
