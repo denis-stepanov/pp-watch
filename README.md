@@ -1,8 +1,6 @@
 # pp-watch
 PiouPiou Watcher project
 
-Contact: Denis.N.Stepanov@gmail.com
-
 * pp-watch.py - command line client
 * pp-watch-kde.py - application for KDE desktop
 
