@@ -26,10 +26,23 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
         self.timer.start(3 * 60 * 1000)
 
     def checkWind(self):
-        j = urllib.request.urlopen('http://api.pioupiou.fr/v1/live/503')
-        j_obj = json.load(j)
-        self.setIcon(self.icons[str(int(j_obj['data']['measurements']['wind_heading'] * 100 + 1125) // 2250 % 16 * 22.5)])
-        self.setToolTip('Wind direction %s, speed %d km/h, max %d km/h, min %d km/h. Taken %s' % (j_obj['data']['measurements']['wind_heading'], round(j_obj['data']['measurements']['wind_speed_avg']), round(j_obj['data']['measurements']['wind_speed_max']), round(j_obj['data']['measurements']['wind_speed_min']), j_obj['data']['measurements']['date']))
+        try:
+            j = urllib.request.urlopen('http://api.pioupiou.fr/v1/live/503', timeout=30)
+            m = json.load(j)['data']['measurements']
+            heading = m['wind_heading']
+            avg = m['wind_speed_avg']
+            smax = m['wind_speed_max']
+            smin = m['wind_speed_min']
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            print('Error: failed to get wind data: %s: %s' % (type(e).__name__, e), file=sys.stderr)
+            return  # Keep the previous icon and tooltip
+        missing = [k for k, v in (('wind_heading', heading), ('wind_speed_avg', avg), ('wind_speed_max', smax), ('wind_speed_min', smin)) if v is None]
+        if missing:
+            print('Error: sensor reported no data for: %s' % ', '.join(missing), file=sys.stderr)
+            return  # Keep the previous icon and tooltip
+
+        self.setIcon(self.icons[str(int(heading * 100 + 1125) // 2250 % 16 * 22.5)])
+        self.setToolTip('Wind direction %s, speed %d km/h, max %d km/h, min %d km/h. Taken %s' % (heading, round(avg), round(smax), round(smin), m['date']))
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
